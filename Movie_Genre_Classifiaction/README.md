@@ -15,7 +15,7 @@ This project predicts movie genres using Machine Learning and Natural Language P
 - Matplotlib
 
 ## Accuracy
-Around 45% accuracy on movie genre prediction.
+Around 53.37 accuracy on movie genre prediction.
 
 ## How to Run
 

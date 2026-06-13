@@ -30,7 +30,7 @@ data = pd.read_csv(
 data.dropna(inplace=True)
 
 # Smaller dataset for faster execution
-data = data.sample(8000, random_state=42)
+data = data.sample(15000, random_state=42)
 
 # Features and target
 X = data["description"]
