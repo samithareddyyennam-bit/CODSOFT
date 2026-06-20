@@ -1,37 +1,31 @@
 import pandas as pd
-import matplotlib.pyplot as plt
-
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.model_selection import train_test_split
-from sklearn.naive_bayes import MultinomialNB
-from sklearn.metrics import accuracy_score, confusion_matrix, ConfusionMatrixDisplay
-
 import os
+from sklearn.model_selection import train_test_split
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.metrics import accuracy_score
 
-# Get current folder path
+print("=" * 40)
+print("SPAM SMS DETECTION MODEL")
+print("=" * 40)
+
+# --------------------------
+# Load Dataset
+# --------------------------
 current_folder = os.path.dirname(__file__)
-
-# Full path of spam.csv
 file_path = os.path.join(current_folder, "spam.csv")
 
-# Load dataset
-data = pd.read_csv(file_path, encoding="latin-1")
+data = pd.read_csv(file_path, encoding='latin-1')
 
-# Keep useful columns
+# Keep required columns
 data = data[['v1', 'v2']]
-
-# Rename columns
 data.columns = ['label', 'message']
 
-# Convert labels into numbers
-# ham = 0, spam = 1
+# Convert labels
 data['label'] = data['label'].map({'ham': 0, 'spam': 1})
 
-# Convert text into numbers
-vectorizer = TfidfVectorizer(stop_words='english')
-X = vectorizer.fit_transform(data['message'])
-
-# Labels
+# Features and target
+X = data['message']
 y = data['label']
 
 # Split dataset
@@ -42,58 +36,51 @@ X_train, X_test, y_train, y_test = train_test_split(
     random_state=42
 )
 
+# Text vectorization
+vectorizer = TfidfVectorizer(
+    stop_words='english',
+    ngram_range=(1, 2)
+)
+
+X_train_features = vectorizer.fit_transform(X_train)
+X_test_features = vectorizer.transform(X_test)
+
 # Train model
 model = MultinomialNB()
-model.fit(X_train, y_train)
-
-# Predict
-predictions = model.predict(X_test)
+model.fit(X_train_features, y_train)
 
 # Accuracy
-accuracy = accuracy_score(y_test, predictions)
+y_pred = model.predict(X_test_features)
+accuracy = accuracy_score(y_test, y_pred)
 
-print("===================================")
-print("SPAM SMS DETECTION MODEL")
-print("===================================")
 print("Model trained successfully!")
-print("Accuracy:", accuracy)
+print(f"Accuracy: {accuracy * 100:.2f}%")
 
-# Continuous message prediction
+# --------------------------
+# Prediction Loop
+# --------------------------
 while True:
-    user_message = input("\nEnter a message (or type 'exit' to stop): ")
+    user_message = input(
+        "\nEnter a message (or type 'exit' to stop): "
+    )
 
-    # Stop program
-    if user_message.lower() == 'exit':
-        print("Program Closed")
+    if user_message.lower() == "exit":
+        print("\nProgram Closed")
         break
 
-    # Convert message
-    message_vector = vectorizer.transform([user_message])
+    message_feature = vectorizer.transform([user_message])
 
-    # Predict
-    result = model.predict(message_vector)
-
-    # Confidence score
-    probability = model.predict_proba(message_vector)
+    prediction = model.predict(message_feature)[0]
+    confidence = (
+        model.predict_proba(message_feature).max()
+        * 100
+    )
 
     print("\nPrediction Result:")
 
-    if result[0] == 1:
-        print("This message is SPAM")
+    if prediction == 1:
+        print("⚠️ This message is SPAM")
     else:
-        print("This message is NOT SPAM")
+        print("✅ This message is NOT SPAM")
 
-    print(f"Confidence: {max(probability[0]) * 100:.2f}%")
-
-# Confusion Matrix
-cm = confusion_matrix(y_test, predictions)
-
-display = ConfusionMatrixDisplay(
-    confusion_matrix=cm,
-    display_labels=["Not Spam", "Spam"]
-)
-
-display.plot()
-
-plt.title("Spam SMS Detection Confusion Matrix")
-plt.show()
+    print(f"Confidence: {confidence:.2f}%")
